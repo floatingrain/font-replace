@@ -1,0 +1,84 @@
+{
+	"converters": [
+		{
+			"type": "ttc",
+			"mappers": [
+				{
+					"source_file": "C:\\Windows\\Fonts\\msyh.ttc",
+					"fake_file": "<填写你想要替换的字体路径>",
+					"registry_entry": "Microsoft Yahei & Microsoft Yahei UI (TrueType)",
+					"font_name_display": "微软雅黑",
+					"backup_dir": ".\\backup\\微软雅黑"
+				},
+				{
+					"source_file": "C:\\Windows\\Fonts\\msyhl.ttc",
+					"fake_file": "<填写你想要替换的字体路径>",
+					"registry_entry": "Microsoft Yahei & Microsoft Yahei UI Light (TrueType)",
+					"font_name_display": "微软雅黑Light",
+					"backup_dir": ".\\backup\\微软雅黑Light"
+				},
+				{
+					"source_file": "C:\\Windows\\Fonts\\msyhbd.ttc",
+					"fake_file": "<填写你想要替换的字体路径>",
+					"registry_entry": "Microsoft Yahei & Microsoft Yahei UI Bold (TrueType)",
+					"font_name_display": "微软雅黑Bold",
+					"backup_dir": ".\\backup\\微软雅黑Bold"
+				}
+			]
+		},
+		{
+			"type": "ttf",
+			"mappers": [
+				{
+					"source_file": "C:\\WINDOWS\\FONTS\\SEGOEUIL.TTF",
+					"fake_file": "<填写你想要替换的字体路径>",
+					"registry_entry": "Segoe UI Light (TrueType)",
+					"font_name_display": "Segoe UI Light",
+					"backup_dir": ".\\backup\\Segoe UI Light"
+				},
+				{
+					"source_file": "C:\\WINDOWS\\FONTS\\SEGOEUISL.TTF",
+					"fake_file": "<填写你想要替换的字体路径>",
+					"registry_entry": "Segoe UI Semilight (TrueType)",
+					"font_name_display": "Segoe UI Semilight",
+					"backup_dir": ".\\backup\\Segoe UI Semilight"
+				},
+				{
+					"source_file": "C:\\WINDOWS\\FONTS\\SEGOEUI.TTF",
+					"fake_file": "<填写你想要替换的字体路径>",
+					"registry_entry": "Segoe UI (TrueType)",
+					"font_name_display": "Segoe UI",
+					"backup_dir": ".\\backup\\Segoe UI"
+				},
+				{
+					"source_file": "C:\\WINDOWS\\FONTS\\SEGUISB.TTF",
+					"fake_file": "<填写你想要替换的字体路径>",
+					"registry_entry": "Segoe UI Semibold (TrueType)",
+					"font_name_display": "Segoe UI Semibold",
+					"backup_dir": ".\\backup\\Segoe UI Semibold"
+				},
+				{
+					"source_file": "C:\\WINDOWS\\FONTS\\SEGOEUIB.TTF",
+					"fake_file": "<填写你想要替换的字体路径>",
+					"registry_entry": "Segoe UI Bold (TrueType)",
+					"font_name_display": "Segoe UI Bold",
+					"backup_dir": ".\\backup\\Segoe UI Bold"
+				},
+				{
+					"source_file": "C:\\WINDOWS\\FONTS\\SEGUIBL.TTF",
+					"fake_file": "<填写你想要替换的字体路径>",
+					"registry_entry": "Segoe UI Black (TrueType)",
+					"font_name_display": "Segoe UI Black",
+					"backup_dir": ".\\backup\\Segoe UI Black"
+				},
+				{
+					"source_file": "C:\\WINDOWS\\FONTS\\SEGUIVAR.TTF",
+					"fake_file": "<填写你想要替换的字体路径>",
+					"registry_entry": "Segoe UI Variable (TrueType)",
+					"font_name_display": "Segoe UI Variable",
+					"backup_dir": ".\\backup\\Segoe UI Variable"
+				}
+			]
+		}
+	]
+}
