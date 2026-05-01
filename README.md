@@ -15,20 +15,12 @@
 
 ## 依赖
 
-本项目使用 `pipenv` 管理依赖，建议使用 Python 3.13。
+本项目使用 `uv` 管理依赖，需要 Python >= 3.14。
 
 ### 安装依赖
 
-如果你使用 `pipenv`：
-
 ```bash
-pipenv install
-```
-
-或者使用 `pip` 安装：
-
-```bash
-pip install psutil fonttools pyinstaller
+uv sync
 ```
 
 ## 使用方法
@@ -42,7 +34,7 @@ pip install psutil fonttools pyinstaller
 - **微软雅黑 & Segoe UI 替换**：参考仓库根目录下的`yahei&segoe.json`
 
 **配置说明**：
-参考项目根目录中的 `config-examle.json`。json 文件根路径必须包含一个 `converters` 数组， `converters` 数组下可包含两种字体替换器，一种为 `ttc`，一种为 `ttf` ，替换器由 `type` 字段指定。然后，每个 `converter` 下可包含多个 mapper 对象组成的 `mappers` 数组，每个 mapper 由以下五个字段组成：
+参考项目根目录中的 `config-example.json`。json 文件根路径必须包含一个 `converters` 数组， `converters` 数组下可包含两种字体替换器，一种为 `ttc`，一种为 `ttf` ，替换器由 `type` 字段指定。然后，每个 `converter` 下可包含多个 mapper 对象组成的 `mappers` 数组，每个 mapper 由以下五个字段组成：
 
 - source_file：Windows 系统原始字体文件的路径
 
@@ -59,7 +51,7 @@ pip install psutil fonttools pyinstaller
 需以管理员权限运行：
 
 ```powershell
-sudo python main.py --config my_config.json
+sudo uv run python main.py --config my_config.json
 ```
 
 或者，以管理员权限运行打包后产生的main.exe：
@@ -88,7 +80,7 @@ sudo main.exe --config my_config.json
 本项目提供了 `main.spec` 文件，可以直接使用 PyInstaller 打包：
 
 ```bash
-pyinstaller main.spec
+uv run pyinstaller main.spec --clean
 ```
 
 打包完成后，可执行文件位于 `dist/` 目录下。
