@@ -117,3 +117,48 @@ def resource_check(config: Config) -> bool:
                 valid = False
 
     return valid
+
+
+def restore_resource_check(config: Config) -> bool:
+    """
+    检查备份目录中的资源是否完整，用于恢复流程
+
+    - backup_dir 是否存在
+    - 备份字体文件是否存在且非空
+    - .acl 文件是否存在（缺失仅警告）
+
+    Args:
+        config: 配置对象
+
+    Returns:
+        备份资源是否全部合法
+    """
+    valid = True
+
+    for converter in config.converters:
+        for mapper in converter.mappers:
+            # 检查 backup_dir 是否存在
+            if not os.path.exists(mapper.backup_dir):
+                warning(f"[{mapper.font_name_display}] 备份目录不存在: {mapper.backup_dir}")
+                valid = False
+                continue
+
+            # 检查备份字体文件是否存在
+            backup_font = os.path.join(mapper.backup_dir, os.path.basename(mapper.source_file))
+            if not os.path.exists(backup_font):
+                warning(f"[{mapper.font_name_display}] 备份字体文件不存在: {backup_font}")
+                valid = False
+                continue
+
+            # 检查备份字体文件是否非空
+            if os.path.getsize(backup_font) == 0:
+                warning(f"[{mapper.font_name_display}] 备份字体文件为空: {backup_font}")
+                valid = False
+
+            # 检查 .acl 文件是否存在（非致命）
+            acl_filename = os.path.splitext(os.path.basename(mapper.source_file))[0] + ".acl"
+            acl_file = os.path.join(mapper.backup_dir, acl_filename)
+            if not os.path.exists(acl_file):
+                warning(f"[{mapper.font_name_display}] ACL备份文件不存在（将跳过权限恢复）: {acl_file}")
+
+    return valid
