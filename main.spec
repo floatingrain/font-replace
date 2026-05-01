@@ -1,12 +1,32 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.building.build_main import Analysis
+from PyInstaller.building.api import PYZ, EXE
+from PyInstaller.utils.hooks import collect_submodules
+
+# 收集 fontTools 所有子模块
+hidden_imports = collect_submodules('fontTools')
+hidden_imports += collect_submodules('lxml')
+hidden_imports += collect_submodules('defcon')
+hidden_imports += [
+    'psutil',
+    'config',
+    'config.loader',
+    'converters',
+    'converters.base',
+    'converters.ttc',
+    'converters.ttf',
+    'utils',
+    'utils.common',
+    'utils.font',
+]
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -22,7 +42,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='main',
+    name='font-replace',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

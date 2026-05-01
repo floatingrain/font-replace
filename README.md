@@ -5,50 +5,46 @@
 ## 目录结构
 
 - `main.py`: 程序入口
-- `config/`: 配置文件及加载逻辑
-  - `config.json`: 默认配置文件（需手动创建）
+- `config/`: 配置加载逻辑及数据类定义
 - `converters/`: 字体转换核心逻辑 (TTC, TTF)
+- `replace/`: 字体替换编排逻辑
+- `restore/`: 字体还原编排逻辑
 - `utils/`: 通用工具 (PowerShell, FontTools 等)
+- `fake-font/`: 内置替换字体（MiSans 系列）
 - `config-example.json`: 配置文件示例模板
 - `yahei&segoe.json`: 微软雅黑与 Segoe UI 替换配置参考
 - `main.spec`: PyInstaller 打包配置文件
 
 ## 依赖
 
-本项目使用 `pipenv` 管理依赖，建议使用 Python 3.13。
+本项目使用 `uv` 管理依赖，需要 Python >= 3.14。
 
 ### 安装依赖
 
-如果你使用 `pipenv`：
-
 ```bash
-pipenv install
-```
-
-或者使用 `pip` 安装：
-
-```bash
-pip install psutil fonttools pyinstaller
+uv sync
 ```
 
 ## 使用方法
 
 ### 1. 准备配置文件
 
-程序默认读取 `config/config.json`。你可以复制根目录下的示例文件进行配置：
+你需要手动创建配置文件（参考以下示例），并在运行时通过 `-c` 参数指定路径：
 
 - **通用模板**：仓库根目录下的 `config-example.json`
 
 - **微软雅黑 & Segoe UI 替换**：参考仓库根目录下的`yahei&segoe.json`
 
 **配置说明**：
-参考项目根目录中的 `config-examle.json`。json 文件根路径必须包含一个 `converters` 数组， `converters` 数组下可包含两种字体替换器，一种为 `ttc`，一种为 `ttf` ，替换器由 `type` 字段指定。然后，每个 `converter` 下可包含多个 mapper 对象组成的 `mappers` 数组，每个 mapper 由以下五个字段组成：
+参考项目根目录中的 `config-example.json`。json 文件根路径必须包含一个 `converters` 数组， `converters` 数组下可包含两种字体替换器，一种为 `ttc`，一种为 `ttf` ，替换器由 `type` 字段指定。然后，每个 `converter` 下可包含多个 mapper 对象组成的 `mappers` 数组，每个 mapper 由以下字段组成：
 
 - source_file：Windows 系统原始字体文件的路径
 
 - fake_file：用来替换上述原始字体的字体文件路径
 
-- registry_entry：Windows 系统原始字体文件的路径的注册表键
+- output_file：（可选）转换后的输出文件路径，不指定则默认输出到 `target-fonts/` 目录
+
+- registry_entry：Windows 系统原始字体对应的注册表键名
 
 - font_name_display：在程序执行过程中打印 log 时用于提示的字体名称
 
@@ -56,39 +52,49 @@ pip install psutil fonttools pyinstaller
 
 ### 2. 运行程序
 
-需以管理员权限运行：
+需以管理员权限运行，`-c` 参数指定配置文件路径：
+
+**替换字体：**
 
 ```powershell
-sudo python main.py --config my_config.json
+sudo uv run python main.py replace -c my_config.json
 ```
 
-或者，以管理员权限运行打包后产生的main.exe：
+**从备份还原字体：**
 
 ```powershell
-sudo main.exe --config my_config.json
+sudo uv run python main.py restore -c my_config.json
+```
+
+或者，以管理员权限运行打包后产生的可执行文件：
+
+```powershell
+sudo font-replace.exe replace -c my_config.json
+sudo font-replace.exe restore -c my_config.json
 ```
 
 ### 3. 生效
 
-程序执行完毕后，会提示注销系统。注销并重新登录后，字体替换即生效。另外，有时可能需要重新启动系统。
+程序执行完毕后，会提示按任意键重启系统以使字体替换生效。
 
 ### 4. 注意事项
 
-* **备份**：程序会自动备份原字体到配置文件指定的 `backup_dir`。
+* **备份**：程序会自动备份原字体及其 ACL 权限到配置文件指定的 `backup_dir`。
+* **还原**：使用 `restore` 子命令可从备份还原原始字体和注册表项。
 * **风险**：修改系统字体有一定风险，请在执行本程序之前为系统创建还原点。
-* **还原**：目前暂无还原逻辑。但可以想到的是，我们能够使用备份的 Windows 原始字体作为 fake_font 反向替换回去。
 
 ## 开发
 
-`utils/common.py`: 包含系统操作、权限管理、日志等。
-
-* `converters/base.py`: 定义了转换器的基本流程 (备份 -> 准备 -> 转换 -> 安装)。
-* 若要添加新的转换器类型，请继承 `BaseConverter` 并实现相应方法。
+* `converters/base.py`: 定义了转换器的基本流程（备份 → 准备 → 转换 → 安装）。若要添加新的转换器类型，请继承 `BaseConverter` 并实现 `prepare_resource()`、`convert()`、`add_registry_entries()` 三个抽象方法。
+* `replace/replace.py`: 替换编排器，按 converter type 实例化对应转换器并执行。
+* `restore/restore.py`: 还原编排器，从备份还原字体文件和注册表项。
+* `utils/common.py`: 系统操作（PowerShell 子进程、管理员检查、进程终止、文件所有权管理、日志输出）。
+* `utils/font.py`: 字体操作（TTC 解包/打包、名称表提取/合并），基于 fonttools。
 
 本项目提供了 `main.spec` 文件，可以直接使用 PyInstaller 打包：
 
 ```bash
-pyinstaller main.spec
+uv run pyinstaller main.spec --clean
 ```
 
 打包完成后，可执行文件位于 `dist/` 目录下。

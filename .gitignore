@@ -2,5 +2,4 @@
 **/build/
 **/backup/
 **/.venv/
-**/fake-font/
 **/__pycache__/
