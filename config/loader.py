@@ -21,7 +21,7 @@ class MapperConfig:
             registry_entry=data["registry_entry"],
             font_name_display=data["font_name_display"],
             fake_file=data["fake_file"],
-            backup_dir="backup",
+            backup_dir=os.path.join("backup", data["font_name_display"]),
         )
 
 

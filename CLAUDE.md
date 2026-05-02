@@ -30,7 +30,7 @@ uv run pyinstaller main.spec --clean
 模板方法模式，四层结构：
 
 - **`main.py`** — CLI 入口（argparse 子命令 `replace`/`restore`，均需 `-c` 指定配置文件路径）→ 管理员检查 → 加载配置 → 资源校验 → 运行编排器 → 提示重启
-- **`config/loader.py`** — 数据类层级：`Config` → `ConverterConfig`（type: "ttc"/"ttf"）→ `MapperConfig`（source_file、fake_file、registry_entry、font_name_display、backup_dir）。`resource_check()` 和 `restore_resource_check()` 分别校验替换和还原的前置条件。注意：`MapperConfig.from_dict()` 当前硬编码 `backup_dir="backup"`，未从配置文件读取。
+- **`config/loader.py`** — 数据类层级：`Config` → `ConverterConfig`（type: "ttc"/"ttf"）→ `MapperConfig`（source_file、fake_file、registry_entry、font_name_display、backup_dir）。`resource_check()` 和 `restore_resource_check()` 分别校验替换和还原的前置条件。注意：`MapperConfig.from_dict()` 自动生成 `backup_dir="backup/{font_name_display}"`，每个字体独立备份目录。
 - **`replacer/`** — `base.py` 中的 `BaseConverter` 定义流水线：`backup_and_prepare()` → `convert()` → `install()`。子类 `TTCConverter`（`ttc.py`）和 `TTFConverter`（`ttf.py`）实现抽象方法 `prepare_resource()`、`convert()`、`add_registry_entries()`。`replace.py` 中的 `run_replace()` 按 converter type 实例化对应转换器并执行。
 - **`restorer/restore.py`** — 还原编排器，当前整个文件已注释掉，`main.py` 中也注释了相关导入。还原功能暂未实现。
 - **`utils/`** — `common.py`：PowerShell 子进程（`run_powershell_command`）、管理员检查（`is_admin`）、进程终止（`kill_processes_using_files`，基于 psutil）、文件所有权管理（`take_ownership`/`restore_ownership`，通过 takeown/icacls）。`font.py`：基于 fonttools 的字体操作（otc2otf/otf2otc 打包解包、ttx_extract_name/ttx_merge 名称表提取合并）。
