@@ -25,7 +25,9 @@ class TTFConverter(BaseConverter):
         """使用 fake_file 和 提取的 name 表生成新 TTF"""
         for mapper in self.mappers:
             if not mapper.fake_file or not os.path.exists(mapper.fake_file):
-                logging.warning(f"未指定 fake_file 或文件不存在: {mapper.fake_file}，跳过转换")
+                logging.warning(
+                    f"未指定 fake_file 或文件不存在: {mapper.fake_file}，跳过转换"
+                )
                 continue
 
             # 查找 ttx 文件
@@ -62,18 +64,12 @@ class TTFConverter(BaseConverter):
 
             # 合并 name 表
             ttx_merge(output_ttf, ttx_file, build_dir)
-
+            target_dir = os.path.join(os.getcwd(), "target-fonts")
+            if not os.path.exists(target_dir):
+                os.makedirs(target_dir)
             # 设置最终输出路径
-            if not mapper.output_file:
-                target_dir = os.path.join(os.getcwd(), "target-fonts")
-                if not os.path.exists(target_dir):
-                    os.makedirs(target_dir)
-                mapper.output_file = os.path.join(target_dir, target_basename)
-
-            # 复制到输出路径
-            os.makedirs(os.path.dirname(mapper.output_file), exist_ok=True)
-            if output_ttf != mapper.output_file:
-                shutil.copy2(output_ttf, mapper.output_file)
+            output_file = os.path.join(os.getcwd(), target_dir, target_basename)
+            shutil.copy2(output_ttf, output_file)
 
     def add_registry_entries(self):
         """添加注册表项"""

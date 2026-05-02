@@ -44,7 +44,9 @@ class TTCConverter(BaseConverter):
         """
         for mapper in self.mappers:
             if not mapper.fake_file or not os.path.exists(mapper.fake_file):
-                logging.warning(f"未指定 fake_file 或文件不存在: {mapper.fake_file}，跳过转换")
+                logging.warning(
+                    f"未指定 fake_file 或文件不存在: {mapper.fake_file}，跳过转换"
+                )
                 continue
 
             # 获取备份目录下的所有 ttx 文件 (name表)
@@ -90,21 +92,13 @@ class TTCConverter(BaseConverter):
                 generated_ttfs.append(output_ttf)
 
             # 合并为 TTC
-            if not mapper.output_file:
-                # 如果未配置output_file，默认生成到 current_dir/target-fonts/
-                # 或者直接用 source_file 的 basename
-                target_dir = os.path.join(os.getcwd(), "target-fonts")
-                if not os.path.exists(target_dir):
-                    os.makedirs(target_dir)
-                mapper.output_file = os.path.join(
-                    target_dir, os.path.basename(mapper.source_file)
-                )
+            target_dir = os.path.join(os.getcwd(), "target-fonts")
+            if not os.path.exists(target_dir):
+                os.makedirs(target_dir)
+            output_file = os.path.join(target_dir, os.path.basename(mapper.source_file))
 
-            # 确保输出目录存在
-            os.makedirs(os.path.dirname(mapper.output_file), exist_ok=True)
-
-            logging.info(f"正在合并生成 TTC: {mapper.output_file}")
-            otf2otc(generated_ttfs, mapper.output_file)
+            logging.info(f"正在合并生成 TTC: {output_file}")
+            otf2otc(generated_ttfs, output_file)
 
     def add_registry_entries(self):
         """添加注册表项"""
@@ -112,11 +106,6 @@ class TTCConverter(BaseConverter):
         for mapper in self.mappers:
             if not mapper.registry_entry:
                 continue
-
-            # 值通常是文件名，例如 msyh.ttc
-            # 如果 output_file 是完整路径，我们需要提取文件名，因为 Windows Fonts 注册表通常只存文件名 (如果在Fonts目录下)
-            # 或者完整路径 (如果在外部)
-            # 替换逻辑是将文件复制到 C:\Windows\Fonts，所以只需文件名
             font_filename = os.path.basename(mapper.source_file)
 
             cmd = f"New-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts' -Name '{mapper.registry_entry}' -Value '{font_filename}' -PropertyType String -Force"

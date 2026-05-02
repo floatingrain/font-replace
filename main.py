@@ -8,7 +8,8 @@ import sys
 
 from config.loader import load_config, resource_check, restore_resource_check
 from replacer.replace import run_replace
-from restorer.restore import run_restore
+
+# from restorer.restore import run_restore
 from utils.common import is_admin, run_powershell_command
 
 
@@ -33,7 +34,7 @@ class _ColorFormatter(logging.Formatter):
 _handler = logging.StreamHandler(sys.stderr)
 _handler.setFormatter(_ColorFormatter("%(levelname)s: %(message)s"))
 _root = logging.getLogger()
-_root.setLevel(logging.DEBUG)
+_root.setLevel(logging.INFO)
 _root.addHandler(_handler)
 _root.propagate = False
 
@@ -92,7 +93,9 @@ def main():
     if args.command == "replace":
         run_replace(config)
     elif args.command == "restore":
-        run_restore(config)
+        # run_restore(config)
+        logging.warn("恢复功能暂未实现，按任意键继续...")
+        input()
 
     # 5. 提示重启
     logging.warning("请点击任意键重启系统以使更改生效...")

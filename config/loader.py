@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 @dataclass
@@ -170,7 +170,9 @@ def restore_resource_check(config: Config) -> bool:
 
             # 检查备份字体文件是否非空
             if os.path.getsize(backup_font) == 0:
-                logging.warning(f"[{mapper.font_name_display}] 备份字体文件为空: {backup_font}")
+                logging.warning(
+                    f"[{mapper.font_name_display}] 备份字体文件为空: {backup_font}"
+                )
                 valid = False
 
             # 检查 .acl 文件是否存在（非致命）
