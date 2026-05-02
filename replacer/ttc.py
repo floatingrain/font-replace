@@ -1,9 +1,10 @@
 import glob
+import logging
 import os
 import shutil
 
 from config.loader import MapperConfig
-from utils.common import info, run_powershell_command, warning
+from utils.common import run_powershell_command
 from utils.font import otc2otf, otf2otc, ttx_extract_name, ttx_merge
 
 from .base import BaseConverter
@@ -22,18 +23,18 @@ class TTCConverter(BaseConverter):
         )
 
         # 1. 解包
-        info(f"正在解包 {backup_file} ...")
+        logging.info(f"正在解包 {backup_file} ...")
         otc2otf(backup_file, mapper.backup_dir)
 
         # 2. 提取 name 表
         # 扫描备份目录下的所有ttf文件 (由otc2otf生成)
         extracted_fonts = glob.glob(os.path.join(mapper.backup_dir, "*.ttf"))
         if not extracted_fonts:
-            warning(f"未从 {backup_file} 提取到任何TTF文件")
+            logging.warning(f"未从 {backup_file} 提取到任何TTF文件")
             return
 
         for font_file in extracted_fonts:
-            info(f"正在提取名称表: {os.path.basename(font_file)}")
+            logging.info(f"正在提取名称表: {os.path.basename(font_file)}")
             ttx_extract_name(font_file, mapper.backup_dir)
 
     def convert(self):
@@ -43,7 +44,7 @@ class TTCConverter(BaseConverter):
         """
         for mapper in self.mappers:
             if not mapper.fake_file or not os.path.exists(mapper.fake_file):
-                warning(f"未指定 fake_file 或文件不存在: {mapper.fake_file}，跳过转换")
+                logging.warning(f"未指定 fake_file 或文件不存在: {mapper.fake_file}，跳过转换")
                 continue
 
             # 获取备份目录下的所有 ttx 文件 (name表)
@@ -55,7 +56,7 @@ class TTCConverter(BaseConverter):
 
             ttx_files = sorted(glob.glob(os.path.join(mapper.backup_dir, "*.ttx")))
             if not ttx_files:
-                warning(f"未找到名称表文件，跳过: {mapper.font_name_display}")
+                logging.warning(f"未找到名称表文件，跳过: {mapper.font_name_display}")
                 continue
 
             generated_ttfs = []
@@ -79,7 +80,7 @@ class TTCConverter(BaseConverter):
                 # 如果 fake_file 叫 source.ttf，输出会是 source.ttf。
                 # 我们需要重命名为 MicrosoftYaHei.ttf。
 
-                info(f"正在生成: {base_name}")
+                logging.info(f"正在生成: {base_name}")
                 # 复制 fake_file 到 build_dir 并重命名为目标文件名
                 shutil.copy2(mapper.fake_file, output_ttf)
 
@@ -102,12 +103,12 @@ class TTCConverter(BaseConverter):
             # 确保输出目录存在
             os.makedirs(os.path.dirname(mapper.output_file), exist_ok=True)
 
-            info(f"正在合并生成 TTC: {mapper.output_file}")
+            logging.info(f"正在合并生成 TTC: {mapper.output_file}")
             otf2otc(generated_ttfs, mapper.output_file)
 
     def add_registry_entries(self):
         """添加注册表项"""
-        info("正在更新注册表...")
+        logging.info("正在更新注册表...")
         for mapper in self.mappers:
             if not mapper.registry_entry:
                 continue

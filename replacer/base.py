@@ -1,17 +1,16 @@
+import logging
 import os
 import shutil
+import sys
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 
 from config.loader import ConverterConfig, MapperConfig
 from utils.common import (
-    error,
-    info,
     kill_processes_using_files,
     restore_ownership,
     run_powershell_command,
     take_ownership,
-    warning,
 )
 
 
@@ -24,12 +23,12 @@ class BaseConverter(ABC):
 
     def run(self):
         """执行转换流程"""
-        info(f"开始处理转换器: {self.config.type}")
+        logging.info(f"开始处理转换器: {self.config.type}")
         self._validate_source_files()
         self.backup_and_prepare()
         self.convert()
         self.install()
-        info(f"转换器 {self.config.type} 处理完成")
+        logging.info(f"转换器 {self.config.type} 处理完成")
 
     def _validate_source_files(self):
         """前置校验所有源文件是否存在，任一缺失则终止"""
@@ -39,12 +38,14 @@ class BaseConverter(ABC):
                 missing.append(mapper.source_file)
         if missing:
             for path in missing:
-                error(f"源文件不存在: {path}")
+                logging.error(f"源文件不存在: {path}")
+                input("按任意键退出...")
+                sys.exit(1)
 
     def backup_and_prepare(self):
         """备份原字体并准备资源"""
         for mapper in self.mappers:
-            info(f"正在备份 {mapper.font_name_display}...")
+            logging.info(f"正在备份 {mapper.font_name_display}...")
 
             # 创建备份目录
             if not os.path.exists(mapper.backup_dir):
@@ -91,7 +92,7 @@ class BaseConverter(ABC):
 
         # 3. 替换文件 (多线程并行)
         if self.mappers:
-            info(f"正在启动 {len(self.mappers)} 个线程进行字体替换...")
+            logging.info(f"正在启动 {len(self.mappers)} 个线程进行字体替换...")
             with ThreadPoolExecutor(max_workers=len(self.mappers)) as executor:
                 list(executor.map(self.replace_file, self.mappers))
 
@@ -103,7 +104,7 @@ class BaseConverter(ABC):
         system_file = mapper.source_file
         target_file = os.path.join(os.getcwd(), "target-fonts", os.path.basename(mapper.source_file))
 
-        info(f"正在替换: {system_file}")
+        logging.info(f"正在替换: {system_file}")
 
         # 构造ACL备份文件路径（与 backup_and_prepare 中的命名规则一致）
         acl_filename = os.path.splitext(os.path.basename(system_file))[0] + ".acl"
@@ -117,20 +118,24 @@ class BaseConverter(ABC):
             if os.path.exists(system_file):
                 os.remove(system_file)
         except OSError as e:
-            error(f"无法删除原文件: {e}")
+            logging.error(f"无法删除原文件: {e}")
+            input("按任意键退出...")
+            sys.exit(1)
 
         # 复制新文件
         try:
             shutil.copy2(target_file, system_file)
         except OSError as e:
-            error(f"复制新文件失败: {e}")
+            logging.error(f"复制新文件失败: {e}")
+            input("按任意键退出...")
+            sys.exit(1)
 
         # 恢复权限和所有权
         restore_ownership(system_file, acl_file)
 
     def remove_registry_entries(self):
         """删除注册表项"""
-        warning("正在删除注册表项...")
+        logging.warning("正在删除注册表项...")
         for mapper in self.mappers:
             cmd = f"Remove-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts' -Name '{mapper.registry_entry}' -Force -ErrorAction SilentlyContinue"
             run_powershell_command(cmd, check=False)

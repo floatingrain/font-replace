@@ -1,9 +1,9 @@
 import json
+import logging
 import os
+import sys
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
-
-from utils.common import error, warning
 
 
 @dataclass
@@ -60,18 +60,26 @@ def load_config(config_path: str) -> Config | None:
         Config对象
     """
     if not os.path.exists(config_path):
-        error(f"配置文件不存在: {config_path}")
+        logging.error(f"配置文件不存在: {config_path}")
+        input("按任意键退出...")
+        sys.exit(1)
 
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return Config.from_dict(data)
     except json.JSONDecodeError as e:
-        error(f"配置文件JSON格式错误: {e}")
+        logging.error(f"配置文件JSON格式错误: {e}")
+        input("按任意键退出...")
+        sys.exit(1)
     except KeyError as e:
-        error(f"配置文件缺少必要字段: {e}")
+        logging.error(f"配置文件缺少必要字段: {e}")
+        input("按任意键退出...")
+        sys.exit(1)
     except Exception as e:
-        error(f"加载配置文件失败: {e}")
+        logging.error(f"加载配置文件失败: {e}")
+        input("按任意键退出...")
+        sys.exit(1)
 
 
 def resource_check(config: Config) -> bool:
@@ -96,14 +104,14 @@ def resource_check(config: Config) -> bool:
         for mapper in converter.mappers:
             # 检查 source_file 是否存在
             if not os.path.exists(mapper.source_file):
-                warning(
+                logging.warning(
                     f"[{mapper.font_name_display}] 源文件不存在: {mapper.source_file}"
                 )
                 valid = False
 
             # 检查 fake_file 是否存在（可选字段，但若提供则必须存在）
             if mapper.fake_file is not None and not os.path.exists(mapper.fake_file):
-                warning(
+                logging.warning(
                     f"[{mapper.font_name_display}] 替换字体不存在: {mapper.fake_file}"
                 )
                 valid = False
@@ -115,7 +123,7 @@ def resource_check(config: Config) -> bool:
             )
             result = run_powershell_command(cmd, capture_output=True, check=False)
             if result is None or not result.stdout.strip():
-                warning(
+                logging.warning(
                     f"[{mapper.font_name_display}] 注册表项不存在: {mapper.registry_entry}"
                 )
                 valid = False
@@ -143,7 +151,7 @@ def restore_resource_check(config: Config) -> bool:
         for mapper in converter.mappers:
             # 检查 backup_dir 是否存在
             if not os.path.exists(mapper.backup_dir):
-                warning(
+                logging.warning(
                     f"[{mapper.font_name_display}] 备份目录不存在: {mapper.backup_dir}"
                 )
                 valid = False
@@ -154,7 +162,7 @@ def restore_resource_check(config: Config) -> bool:
                 mapper.backup_dir, os.path.basename(mapper.source_file)
             )
             if not os.path.exists(backup_font):
-                warning(
+                logging.warning(
                     f"[{mapper.font_name_display}] 备份字体文件不存在: {backup_font}"
                 )
                 valid = False
@@ -162,7 +170,7 @@ def restore_resource_check(config: Config) -> bool:
 
             # 检查备份字体文件是否非空
             if os.path.getsize(backup_font) == 0:
-                warning(f"[{mapper.font_name_display}] 备份字体文件为空: {backup_font}")
+                logging.warning(f"[{mapper.font_name_display}] 备份字体文件为空: {backup_font}")
                 valid = False
 
             # 检查 .acl 文件是否存在（非致命）
@@ -171,7 +179,7 @@ def restore_resource_check(config: Config) -> bool:
             )
             acl_file = os.path.join(mapper.backup_dir, acl_filename)
             if not os.path.exists(acl_file):
-                warning(
+                logging.warning(
                     f"[{mapper.font_name_display}] ACL备份文件不存在（将跳过权限恢复）: {acl_file}"
                 )
 

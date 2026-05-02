@@ -1,6 +1,7 @@
+import logging
+
 from config.loader import Config
 from replacer import TTCConverter, TTFConverter
-from utils.common import warning
 
 
 def run_replace(config: Config):
@@ -13,7 +14,7 @@ def run_replace(config: Config):
         elif converter_type == "ttf":
             converter = TTFConverter(converter_config)
         else:
-            warning(f"未知的转换器类型: {converter_type}，跳过")
+            logging.warning(f"未知的转换器类型: {converter_type}，跳过")
             continue
 
         converter.run()

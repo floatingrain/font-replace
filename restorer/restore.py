@@ -1,16 +1,15 @@
+import logging
 import os
 import shutil
+import sys
 from concurrent.futures import ThreadPoolExecutor
 
 from config.loader import Config, MapperConfig
 from utils.common import (
-    error,
-    info,
     kill_processes_using_files,
     restore_ownership,
     run_powershell_command,
     take_ownership,
-    warning,
 )
 
 
@@ -26,9 +25,13 @@ class RestoreRunner:
             self.mapper.backup_dir, os.path.basename(self.mapper.source_file)
         )
         if not os.path.exists(backup_font):
-            error(f"[{self.mapper.font_name_display}] 备份字体文件不存在: {backup_font}")
+            logging.error(f"[{self.mapper.font_name_display}] 备份字体文件不存在: {backup_font}")
+            input("按任意键退出...")
+            sys.exit(1)
         if os.path.getsize(backup_font) == 0:
-            error(f"[{self.mapper.font_name_display}] 备份字体文件为空: {backup_font}")
+            logging.error(f"[{self.mapper.font_name_display}] 备份字体文件为空: {backup_font}")
+            input("按任意键退出...")
+            sys.exit(1)
 
     def restore_file(self):
         """恢复字体文件和 ACL 权限"""
@@ -37,7 +40,7 @@ class RestoreRunner:
         acl_filename = os.path.splitext(os.path.basename(mapper.source_file))[0] + ".acl"
         acl_file = os.path.join(mapper.backup_dir, acl_filename)
 
-        info(f"正在恢复字体文件: {mapper.source_file}")
+        logging.info(f"正在恢复字体文件: {mapper.source_file}")
 
         # 获取当前文件所有权
         take_ownership(mapper.source_file)
@@ -52,15 +55,19 @@ class RestoreRunner:
                 if os.path.exists(temp_backup):
                     os.remove(temp_backup)
                 os.rename(mapper.source_file, temp_backup)
-                warning(f"无法直接删除，已重命名为 {temp_backup}")
+                logging.warning(f"无法直接删除，已重命名为 {temp_backup}")
             except OSError:
-                error(f"无法删除或重命名原文件: {mapper.source_file}, {e}")
+                logging.error(f"无法删除或重命名原文件: {mapper.source_file}, {e}")
+                input("按任意键退出...")
+                sys.exit(1)
 
         # 复制备份文件到系统路径
         try:
             shutil.copy2(backup_font, mapper.source_file)
         except OSError as e:
-            error(f"复制备份文件失败: {e}")
+            logging.error(f"复制备份文件失败: {e}")
+            input("按任意键退出...")
+            sys.exit(1)
 
         # 恢复 ACL 和所有权
         restore_ownership(mapper.source_file, acl_file)
@@ -70,7 +77,7 @@ class RestoreRunner:
         mapper = self.mapper
         font_filename = os.path.basename(mapper.source_file)
 
-        info(f"正在恢复注册表项: {mapper.registry_entry}")
+        logging.info(f"正在恢复注册表项: {mapper.registry_entry}")
 
         # 删除当前注册表项
         cmd = (
@@ -103,7 +110,7 @@ def run_restore(config: Config):
             runners.append(runner)
 
     if not runners:
-        warning("没有需要恢复的字体")
+        logging.warning("没有需要恢复的字体")
         return
 
     # 2. 统一终止占用进程
@@ -111,7 +118,7 @@ def run_restore(config: Config):
     kill_processes_using_files(system_files)
 
     # 3. 多线程并行恢复文件
-    info(f"正在启动 {len(runners)} 个线程进行字体恢复...")
+    logging.info(f"正在启动 {len(runners)} 个线程进行字体恢复...")
     with ThreadPoolExecutor(max_workers=len(runners)) as executor:
         list(executor.map(lambda r: r.restore_file(), runners))
 
@@ -119,4 +126,4 @@ def run_restore(config: Config):
     for runner in runners:
         runner.restore_registry()
 
-    info("所有字体已恢复！")
+    logging.info("所有字体已恢复！")
