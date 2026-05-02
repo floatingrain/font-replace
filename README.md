@@ -10,7 +10,7 @@
 - `replace/`: 字体替换编排逻辑
 - `restore/`: 字体还原编排逻辑
 - `utils/`: 通用工具 (PowerShell, FontTools 等)
-- `fake-font/`: 内置替换字体（MiSans 系列）
+- `fake-fonts/`: 内置替换字体（MiSans 系列）
 - `config-example.json`: 配置文件示例模板
 - `yahei&segoe.json`: 微软雅黑与 Segoe UI 替换配置参考
 - `main.spec`: PyInstaller 打包配置文件

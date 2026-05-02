@@ -100,15 +100,8 @@ class BaseConverter(ABC):
 
     def replace_file(self, mapper: MapperConfig):
         """替换单个字体文件"""
-        if not mapper.output_file:
-            warning(f"未指定输出文件，跳过替换: {mapper.font_name_display}")
-            return
-
-        target_file = mapper.output_file
         system_file = mapper.source_file
-
-        if not os.path.exists(target_file):
-            error(f"目标字体文件不存在: {target_file}")
+        target_file = os.path.join(os.getcwd(), "target-fonts", os.path.basename(mapper.source_file))
 
         info(f"正在替换: {system_file}")
 
@@ -124,15 +117,7 @@ class BaseConverter(ABC):
             if os.path.exists(system_file):
                 os.remove(system_file)
         except OSError as e:
-            # 如果删除失败，尝试移动到临时目录（Windows下有时允许重命名正在使用的文件）
-            try:
-                temp_backup = system_file + ".old"
-                if os.path.exists(temp_backup):
-                    os.remove(temp_backup)
-                os.rename(system_file, temp_backup)
-                warning(f"无法直接删除，已重命名为 {temp_backup}")
-            except OSError:
-                error(f"无法删除或重命名原文件: {system_file}, {e}")
+            error(f"无法删除原文件: {e}")
 
         # 复制新文件
         try:

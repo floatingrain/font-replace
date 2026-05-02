@@ -5,8 +5,8 @@ import argparse
 import os
 
 from config.loader import load_config, resource_check, restore_resource_check
-from replace.replace import run_replace
-from restore.restore import run_restore
+from replacer.replace import run_replace
+from restorer.restore import run_restore
 from utils.common import error, info, is_admin, run_powershell_command, warning
 
 

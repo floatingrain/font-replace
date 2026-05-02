@@ -12,8 +12,7 @@ class MapperConfig:
     registry_entry: str
     font_name_display: str
     backup_dir: str
-    fake_file: Optional[str] = None
-    output_file: Optional[str] = None
+    fake_file: str
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "MapperConfig":
@@ -21,9 +20,8 @@ class MapperConfig:
             source_file=data["source_file"],
             registry_entry=data["registry_entry"],
             font_name_display=data["font_name_display"],
-            backup_dir=data["backup_dir"],
-            fake_file=data.get("fake_file"),
-            output_file=data.get("output_file"),
+            fake_file=data["fake_file"],
+            backup_dir="backup",
         )
 
 
@@ -98,12 +96,16 @@ def resource_check(config: Config) -> bool:
         for mapper in converter.mappers:
             # 检查 source_file 是否存在
             if not os.path.exists(mapper.source_file):
-                warning(f"[{mapper.font_name_display}] 源文件不存在: {mapper.source_file}")
+                warning(
+                    f"[{mapper.font_name_display}] 源文件不存在: {mapper.source_file}"
+                )
                 valid = False
 
             # 检查 fake_file 是否存在（可选字段，但若提供则必须存在）
             if mapper.fake_file is not None and not os.path.exists(mapper.fake_file):
-                warning(f"[{mapper.font_name_display}] 替换字体不存在: {mapper.fake_file}")
+                warning(
+                    f"[{mapper.font_name_display}] 替换字体不存在: {mapper.fake_file}"
+                )
                 valid = False
 
             # 检查 registry_entry 是否存在于注册表
@@ -113,7 +115,9 @@ def resource_check(config: Config) -> bool:
             )
             result = run_powershell_command(cmd, capture_output=True, check=False)
             if result is None or not result.stdout.strip():
-                warning(f"[{mapper.font_name_display}] 注册表项不存在: {mapper.registry_entry}")
+                warning(
+                    f"[{mapper.font_name_display}] 注册表项不存在: {mapper.registry_entry}"
+                )
                 valid = False
 
     return valid
@@ -139,14 +143,20 @@ def restore_resource_check(config: Config) -> bool:
         for mapper in converter.mappers:
             # 检查 backup_dir 是否存在
             if not os.path.exists(mapper.backup_dir):
-                warning(f"[{mapper.font_name_display}] 备份目录不存在: {mapper.backup_dir}")
+                warning(
+                    f"[{mapper.font_name_display}] 备份目录不存在: {mapper.backup_dir}"
+                )
                 valid = False
                 continue
 
             # 检查备份字体文件是否存在
-            backup_font = os.path.join(mapper.backup_dir, os.path.basename(mapper.source_file))
+            backup_font = os.path.join(
+                mapper.backup_dir, os.path.basename(mapper.source_file)
+            )
             if not os.path.exists(backup_font):
-                warning(f"[{mapper.font_name_display}] 备份字体文件不存在: {backup_font}")
+                warning(
+                    f"[{mapper.font_name_display}] 备份字体文件不存在: {backup_font}"
+                )
                 valid = False
                 continue
 
@@ -156,9 +166,13 @@ def restore_resource_check(config: Config) -> bool:
                 valid = False
 
             # 检查 .acl 文件是否存在（非致命）
-            acl_filename = os.path.splitext(os.path.basename(mapper.source_file))[0] + ".acl"
+            acl_filename = (
+                os.path.splitext(os.path.basename(mapper.source_file))[0] + ".acl"
+            )
             acl_file = os.path.join(mapper.backup_dir, acl_filename)
             if not os.path.exists(acl_file):
-                warning(f"[{mapper.font_name_display}] ACL备份文件不存在（将跳过权限恢复）: {acl_file}")
+                warning(
+                    f"[{mapper.font_name_display}] ACL备份文件不存在（将跳过权限恢复）: {acl_file}"
+                )
 
     return valid
