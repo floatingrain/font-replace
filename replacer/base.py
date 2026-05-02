@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import sys
+import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 
@@ -87,14 +88,34 @@ class BaseConverter(ABC):
         system_files = [
             mapper.source_file for mapper in self.mappers if mapper.source_file
         ]
-        if system_files:
-            kill_processes_using_files(system_files)
-
-        # 3. 替换文件 (多线程并行)
+        stop_event = kill_processes_using_files(system_files)
+        # 3. 替换文件 (多线程并行，带重试)
+        max_retries = 10
         if self.mappers:
             logging.info(f"正在启动 {len(self.mappers)} 个线程进行字体替换...")
+
+            def replace_with_retry(mapper):
+                for attempt in range(1, max_retries + 1):
+                    try:
+                        self.replace_file(mapper)
+                        return
+                    except Exception as e:
+                        if attempt < max_retries:
+                            logging.warning(
+                                f"{mapper.font_name_display} 替换失败 (第 {attempt}/{max_retries} 次): {e}，正在重试..."
+                            )
+                        else:
+                            raise
+
             with ThreadPoolExecutor(max_workers=len(self.mappers)) as executor:
-                list(executor.map(self.replace_file, self.mappers))
+                futures = [
+                    executor.submit(replace_with_retry, mapper)
+                    for mapper in self.mappers
+                ]
+                for future in futures:
+                    future.result()
+
+        stop_event.set()
 
         # 4. 添加新注册表项 (由子类实现)
         self.add_registry_entries()
@@ -102,7 +123,9 @@ class BaseConverter(ABC):
     def replace_file(self, mapper: MapperConfig):
         """替换单个字体文件"""
         system_file = mapper.source_file
-        target_file = os.path.join(os.getcwd(), "target-fonts", os.path.basename(mapper.source_file))
+        target_file = os.path.join(
+            os.getcwd(), "target-fonts", os.path.basename(mapper.source_file)
+        )
 
         logging.info(f"正在替换: {system_file}")
 
@@ -118,17 +141,13 @@ class BaseConverter(ABC):
             if os.path.exists(system_file):
                 os.remove(system_file)
         except OSError as e:
-            logging.error(f"无法删除原文件: {e}")
-            input("按任意键退出...")
-            sys.exit(1)
+            raise RuntimeError(f"无法删除原文件: {e}") from e
 
         # 复制新文件
         try:
             shutil.copy2(target_file, system_file)
         except OSError as e:
-            logging.error(f"复制新文件失败: {e}")
-            input("按任意键退出...")
-            sys.exit(1)
+            raise RuntimeError(f"复制新文件失败: {e}") from e
 
         # 恢复权限和所有权
         restore_ownership(system_file, acl_file)

@@ -1,7 +1,7 @@
 import logging
 import os
 import subprocess
-import sys
+import threading
 from typing import List, Optional, Set
 
 import psutil
@@ -47,41 +47,52 @@ def is_admin() -> bool:
         return False
 
 
-def kill_processes_using_files(files: List[str]) -> None:
+def kill_processes_using_files(files: List[str]) -> threading.Event:
     """
-    查找并强行终止占用指定文件（一个或多个）的进程
+    查找并强行终止占用指定文件（一个或多个）的进程。
+    为每个发现的进程名创建终结者线程，循环执行杀死命令。
+    返回停止事件，调用者 set() 后所有线程退出。
 
+    Returns:
+        threading.Event — set() 即停止所有终结者线程
     """
     file_paths = {f.lower() for f in files}
     display_msg = f"{len(files)} 个文件"
 
     logging.info(f"正在扫描占用 {display_msg} 的进程...")
-    target_pids: Set[int] = set()
+    target_names: Set[str] = set()
 
     try:
-        for proc in psutil.process_iter(["pid", "name", "open_files"]):
+        for proc in psutil.process_iter(["name", "open_files"]):
             try:
                 open_files = proc.info["open_files"] or []
                 for file in open_files:
                     if file.path.lower() in file_paths:
-                        pid = proc.info["pid"]
-                        logging.warning(
-                            f"发现占用 {file.path} 的进程: {proc.info['name']} (PID {pid})"
-                        )
-                        target_pids.add(pid)
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        name = proc.info["name"]
+                        logging.warning(f"发现占用 {file.path} 的进程: {name}")
+                        target_names.add(name)
+            except psutil.NoSuchProcess, psutil.AccessDenied:
                 continue
     except Exception as e:
         logging.warning(f"扫描进程时出错: {e}")
 
-    if target_pids:
-        for pid in target_pids:
-            try:
-                proc = psutil.Process(pid)
-                proc.kill()
-                logging.info(f"已终止进程 {proc.name()} (PID {pid})")
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                logging.warning(f"无法终止进程 PID {pid}")
+    stop_event = threading.Event()
+
+    if not target_names:
+        stop_event.set()
+        return stop_event
+
+    def _terminator(proc_name: str) -> None:
+        logging.info(f"终结者线程启动: {proc_name}")
+        while not stop_event.is_set():
+            run_powershell_command(f"taskkill /IM {proc_name} /F", check=False)
+        logging.info(f"终结者线程退出: {proc_name}")
+
+    for name in target_names:
+        t = threading.Thread(target=_terminator, args=(name,), daemon=True)
+        t.start()
+
+    return stop_event
 
 
 def take_ownership(file_path: str) -> None:

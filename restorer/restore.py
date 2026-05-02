@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import sys
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from config.loader import Config, MapperConfig
@@ -115,12 +116,14 @@ def run_restore(config: Config):
 
     # 2. 统一终止占用进程
     system_files = [runner.mapper.source_file for runner in runners]
-    kill_processes_using_files(system_files)
+    stop_event = kill_processes_using_files(system_files)
 
     # 3. 多线程并行恢复文件
     logging.info(f"正在启动 {len(runners)} 个线程进行字体恢复...")
     with ThreadPoolExecutor(max_workers=len(runners)) as executor:
         list(executor.map(lambda r: r.restore_file(), runners))
+
+    stop_event.set()
 
     # 4. 统一恢复注册表项
     for runner in runners:
