@@ -2,12 +2,41 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import logging
 import os
+import sys
 
 from config.loader import load_config, resource_check, restore_resource_check
-from replace.replace import run_replace
-from restore.restore import run_restore
-from utils.common import error, info, is_admin, run_powershell_command, warning
+from replacer.replace import run_replace
+
+# from restorer.restore import run_restore
+from utils.common import is_admin, run_powershell_command
+
+
+class _ColorFormatter(logging.Formatter):
+    """带 ANSI 颜色的日志格式化器"""
+
+    COLORS = {
+        logging.DEBUG: "\033[90m",
+        logging.INFO: "\033[94m",
+        logging.WARNING: "\033[93m",
+        logging.ERROR: "\033[91m",
+        logging.CRITICAL: "\033[91m",
+    }
+    RESET = "\033[0m"
+
+    def format(self, record: logging.LogRecord) -> str:
+        msg = super().format(record)
+        color = self.COLORS.get(record.levelno, self.RESET)
+        return f"{color}{msg}{self.RESET}"
+
+
+_handler = logging.StreamHandler(sys.stderr)
+_handler.setFormatter(_ColorFormatter("%(levelname)s: %(message)s"))
+_root = logging.getLogger()
+_root.setLevel(logging.INFO)
+_root.addHandler(_handler)
+_root.propagate = False
 
 
 def main():
@@ -32,38 +61,44 @@ def main():
 
     # 1. 检查管理员权限
     if not is_admin():
-        error("当前非管理员权限，无法执行操作。")
-        return
+        logging.error("当前非管理员权限，无法执行操作。")
+        input("按任意键退出...")
+        sys.exit(1)
 
     # 2. 加载配置
     config_path = os.path.abspath(args.config)
-    info(f"正在加载配置: {config_path}")
+    logging.info(f"正在加载配置: {config_path}")
     config = load_config(config_path)
 
     # 3. 进行前置检查
     if config is None:
-        error("配置加载失败，无法继续执行。")
-        return
+        logging.error("配置加载失败，无法继续执行。")
+        input("按任意键退出...")
+        sys.exit(1)
 
     if args.command == "replace":
-        info("正在检查配置资源...")
+        logging.info("正在检查配置资源...")
         if not resource_check(config):
-            error("前置资源配置检查未通过，请修正配置后重试。")
-            return
+            logging.error("前置资源配置检查未通过，请修正配置后重试。")
+            input("按任意键退出...")
+            sys.exit(1)
     elif args.command == "restore":
-        info("正在检查备份资源...")
+        logging.info("正在检查备份资源...")
         if not restore_resource_check(config):
-            error("备份完整性检查未通过，无法执行恢复。")
-            return
+            logging.error("备份完整性检查未通过，无法执行恢复。")
+            input("按任意键退出...")
+            sys.exit(1)
 
     # 4. 执行子命令
     if args.command == "replace":
         run_replace(config)
     elif args.command == "restore":
-        run_restore(config)
+        # run_restore(config)
+        logging.warn("恢复功能暂未实现，按任意键继续...")
+        input()
 
     # 5. 提示重启
-    warning("请点击任意键重启系统以使更改生效...")
+    logging.warning("请点击任意键重启系统以使更改生效...")
     input()
     run_powershell_command("shutdown -r")
 

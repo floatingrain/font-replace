@@ -1,35 +1,31 @@
 {
-	"converters": [
-		{
-			"type": "ttc",
-			"mappers": [
-				{
-					"source_file": "C:\\Windows\\Fonts\\示例字体1.TTC",
-					"fake_file": "C:\\...\\Regular.ttf",
-					"registry_entry": "示例字体1 (TrueType)",
-					"font_name_display": "示例字体1",
-					"backup_dir": ".\\backup\\示例字体1"
-				},
-				{
-					"source_file": "C:\\...\\示例字体1L.TTC",
-					"output_file": "C:\\...\\Light.ttf",
-					"registry_entry": "示例字体1 Light (TrueType)",
-					"font_name_display": "示例字体1 Light",
-					"backup_dir": ".\\backup\\示例字体1 Light"
-				}
-			]
-		},
-		{
-			"type": "ttf",
-			"mappers": [
-				{
-					"source_file": "C:\\Windows\\Fonts\\示例字体2.ttf",
-					"fake_file": "C:\\...\\fake.ttf",
-					"registry_entry": "示例字体2 (TrueType)",
-					"font_name_display": "示例字体2",
-					"backup_dir": ".\\backup\\示例字体2"
-				}
-			]
-		}
-	]
+  "converters": [
+    {
+      "type": "ttc",
+      "mappers": [
+        {
+          "source_file": "C:\\Windows\\Fonts\\示例字体1.TTC",
+          "fake_file": "C:\\...\\Regular.ttf",
+          "registry_entry": "示例字体1 (TrueType)",
+          "font_name_display": "示例字体1"
+        },
+        {
+          "source_file": "C:\\...\\示例字体1L.TTC",
+          "registry_entry": "示例字体1 Light (TrueType)",
+          "font_name_display": "示例字体1 Light"
+        }
+      ]
+    },
+    {
+      "type": "ttf",
+      "mappers": [
+        {
+          "source_file": "C:\\Windows\\Fonts\\示例字体2.ttf",
+          "fake_file": "C:\\...\\fake.ttf",
+          "registry_entry": "示例字体2 (TrueType)",
+          "font_name_display": "示例字体2"
+        }
+      ]
+    }
+  ]
 }

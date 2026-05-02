@@ -1,26 +1,10 @@
+import logging
 import os
 import subprocess
-import sys
+import threading
 from typing import List, Optional, Set
 
 import psutil
-
-
-def info(message: str) -> None:
-    """显示蓝色提示信息"""
-    print(f"\033[94m{message}\033[0m")
-
-
-def warning(message: str) -> None:
-    """显示黄色警告信息"""
-    print(f"\033[93m{message}\033[0m", file=sys.stderr)
-
-
-def error(message: str) -> None:
-    """显示红色错误信息并退出"""
-    print(f"\033[91m{message}\033[0m", file=sys.stderr)
-    input("按任意键退出...")
-    sys.exit(1)
 
 
 def run_powershell_command(
@@ -39,14 +23,12 @@ def run_powershell_command(
     """
     cmd = ["powershell.exe", "-Command", command]
     try:
-        # 仅在非捕获模式下打印命令，避免日志过于杂乱，或者使用debug级别日志(此处简化为info)
-        # info(f"执行命令: {command}")
         result = subprocess.run(
             cmd, capture_output=capture_output, check=check, text=True
         )
         return result
     except subprocess.CalledProcessError as e:
-        warning(f"命令执行错误：{e.stderr if e.stderr else e}")
+        logging.warning(f"命令执行错误：{e.stderr if e.stderr else e}")
         if check:
             raise
         return None
@@ -61,48 +43,56 @@ def is_admin() -> bool:
             return result.stdout.strip().lower() == "true"
         return False
     except Exception as e:
-        warning(f"检查管理员权限时出错: {e}")
+        logging.warning(f"检查管理员权限时出错: {e}")
         return False
 
 
-def kill_processes_using_files(files: List[str]) -> None:
+def kill_processes_using_files(files: List[str]) -> threading.Event:
     """
-    查找并强行终止占用指定文件（一个或多个）的进程
+    查找并强行终止占用指定文件（一个或多个）的进程。
+    为每个发现的进程名创建终结者线程，循环执行杀死命令。
+    返回停止事件，调用者 set() 后所有线程退出。
 
+    Returns:
+        threading.Event — set() 即停止所有终结者线程
     """
     file_paths = {f.lower() for f in files}
     display_msg = f"{len(files)} 个文件"
 
-    info(f"正在扫描占用 {display_msg} 的进程...")
-    target_pids: Set[int] = set()
+    logging.info(f"正在扫描占用 {display_msg} 的进程...")
+    target_names: Set[str] = set()
 
     try:
-        for proc in psutil.process_iter(["pid", "name", "open_files"]):
+        for proc in psutil.process_iter(["name", "open_files"]):
             try:
                 open_files = proc.info["open_files"] or []
                 for file in open_files:
                     if file.path.lower() in file_paths:
-                        pid = proc.info["pid"]
-                        warning(
-                            f"发现占用 {file.path} 的进程: {proc.info['name']} (PID {pid})"
-                        )
-                        target_pids.add(pid)
+                        name = proc.info["name"]
+                        logging.warning(f"发现占用 {file.path} 的进程: {name}")
+                        target_names.add(name)
             except psutil.NoSuchProcess, psutil.AccessDenied:
                 continue
     except Exception as e:
-        warning(f"扫描进程时出错: {e}")
+        logging.warning(f"扫描进程时出错: {e}")
 
-    if target_pids:
-        for pid in target_pids:
-            try:
-                proc = psutil.Process(pid)
-                proc.kill()
-                info(f"已终止进程 {proc.name()} (PID {pid})")
-            except psutil.NoSuchProcess, psutil.AccessDenied:
-                warning(f"无法终止进程 PID {pid}")
-    else:
-        # info("未找到明显占用字体文件的进程")
-        pass
+    stop_event = threading.Event()
+
+    if not target_names:
+        stop_event.set()
+        return stop_event
+
+    def _terminator(proc_name: str) -> None:
+        logging.info(f"终结者线程启动: {proc_name}")
+        while not stop_event.is_set():
+            run_powershell_command(f"taskkill /IM {proc_name} /F", check=False)
+        logging.info(f"终结者线程退出: {proc_name}")
+
+    for name in target_names:
+        t = threading.Thread(target=_terminator, args=(name,), daemon=True)
+        t.start()
+
+    return stop_event
 
 
 def take_ownership(file_path: str) -> None:
@@ -125,15 +115,13 @@ def restore_ownership(file_path: str, acl_file: str) -> None:
 
     # 恢复ACL（必须在设置owner之前，因为icacls /restore要求调用者有写DACL权限）
     if os.path.exists(acl_file):
-        # icacls /restore 要求 file_path 是acl文件中记录的原路径，
-        # 且文件必须已存在于该路径。/C 让它遇到错误继续执行。
         result = run_powershell_command(
             f"icacls '{file_path}' /C /restore '{acl_file}'", check=False
         )
         if result and result.returncode != 0:
-            warning(f"ACL恢复可能未完全成功: {file_path}")
+            logging.warning(f"ACL恢复可能未完全成功: {file_path}")
     else:
-        warning(f"ACL备份文件不存在，跳过恢复: {acl_file}")
+        logging.warning(f"ACL备份文件不存在，跳过恢复: {acl_file}")
 
     # 最终将所有权交还给 TrustedInstaller
     run_powershell_command(
