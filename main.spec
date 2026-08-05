@@ -9,15 +9,14 @@ hidden_imports = collect_submodules('fontTools')
 hidden_imports += collect_submodules('lxml')
 hidden_imports += collect_submodules('defcon')
 hidden_imports += [
-    'psutil',
     'config',
     'config.loader',
-    'converters',
-    'converters.base',
-    'converters.ttc',
-    'converters.ttf',
+    'converter',
+    'converter.base',
+    'converter.orchestrator',
+    'converter.ttc',
+    'converter.ttf',
     'utils',
-    'utils.common',
     'utils.font',
 ]
 
