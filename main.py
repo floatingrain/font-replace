@@ -6,11 +6,8 @@ import logging
 import os
 import sys
 
-from config.loader import load_config, resource_check, restore_resource_check
-from replacer.replace import run_replace
-
-# from restorer.restore import run_restore
-from utils.common import is_admin, run_powershell_command
+from config.loader import load_config, resource_check
+from converter.orchestrator import run_convert
 
 
 class _ColorFormatter(logging.Formatter):
@@ -41,16 +38,23 @@ _root.propagate = False
 
 def main():
     """主程序入口"""
-    parser = argparse.ArgumentParser(description="Windows字体替换工具")
+    parser = argparse.ArgumentParser(
+        description="Windows 字体转换工具：将 fake_file 按 source_file 的 name 表合并，输出到 target-fonts 目录"
+    )
     subparsers = parser.add_subparsers(dest="command", help="可用命令")
 
-    # replace 子命令
-    replace_parser = subparsers.add_parser("replace", help="执行字体替换")
-    replace_parser.add_argument("-c", "--config", help="配置文件路径")
-
-    # restore 子命令
-    restore_parser = subparsers.add_parser("restore", help="从备份恢复原始字体")
-    restore_parser.add_argument("-c", "--config", help="配置文件路径")
+    # convert 子命令
+    convert_parser = subparsers.add_parser(
+        "convert", help="执行字体转换，输出到 target-fonts 目录"
+    )
+    convert_parser.add_argument(
+        "-c", "--config", required=True, help="配置文件路径"
+    )
+    convert_parser.add_argument(
+        "--ignore-check",
+        action="store_true",
+        help="跳过前置资源检查（resource_check），直接执行转换",
+    )
 
     args = parser.parse_args()
 
@@ -59,48 +63,31 @@ def main():
         parser.print_help()
         return
 
-    # 1. 检查管理员权限
-    if not is_admin():
-        logging.error("当前非管理员权限，无法执行操作。")
-        input("按任意键退出...")
-        sys.exit(1)
-
-    # 2. 加载配置
+    # 1. 加载配置
     config_path = os.path.abspath(args.config)
     logging.info(f"正在加载配置: {config_path}")
     config = load_config(config_path)
 
-    # 3. 进行前置检查
     if config is None:
         logging.error("配置加载失败，无法继续执行。")
         input("按任意键退出...")
         sys.exit(1)
 
-    if args.command == "replace":
+    # 2. 进行前置检查
+    if args.ignore_check:
+        logging.warning("已启用 --ignore-check，跳过前置资源检查。")
+    else:
         logging.info("正在检查配置资源...")
         if not resource_check(config):
             logging.error("前置资源配置检查未通过，请修正配置后重试。")
             input("按任意键退出...")
             sys.exit(1)
-    elif args.command == "restore":
-        logging.info("正在检查备份资源...")
-        if not restore_resource_check(config):
-            logging.error("备份完整性检查未通过，无法执行恢复。")
-            input("按任意键退出...")
-            sys.exit(1)
 
-    # 4. 执行子命令
-    if args.command == "replace":
-        run_replace(config)
-    elif args.command == "restore":
-        # run_restore(config)
-        logging.warn("恢复功能暂未实现，按任意键继续...")
-        input()
+    # 3. 执行转换
+    if args.command == "convert":
+        run_convert(config)
 
-    # 5. 提示重启
-    logging.warning("请点击任意键重启系统以使更改生效...")
-    input()
-    run_powershell_command("shutdown -r")
+    logging.info("字体转换完成，结果位于 target-fonts 目录。")
 
 
 if __name__ == "__main__":

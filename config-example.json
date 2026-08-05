@@ -4,15 +4,12 @@
       "type": "ttc",
       "mappers": [
         {
-          "source_file": "C:\\Windows\\Fonts\\示例字体1.TTC",
-          "fake_file": "C:\\...\\Regular.ttf",
-          "registry_entry": "示例字体1 (TrueType)",
-          "font_name_display": "示例字体1"
+          "source_file": ".\\origin-fonts\\示例字体1.ttc",
+          "fake_file": ".\\fake-fonts\\Regular.ttf"
         },
         {
-          "source_file": "C:\\...\\示例字体1L.TTC",
-          "registry_entry": "示例字体1 Light (TrueType)",
-          "font_name_display": "示例字体1 Light"
+          "source_file": ".\\origin-fonts\\示例字体1L.ttc",
+          "fake_file": ".\\fake-fonts\\Light.ttf"
         }
       ]
     },
@@ -20,10 +17,8 @@
       "type": "ttf",
       "mappers": [
         {
-          "source_file": "C:\\Windows\\Fonts\\示例字体2.ttf",
-          "fake_file": "C:\\...\\fake.ttf",
-          "registry_entry": "示例字体2 (TrueType)",
-          "font_name_display": "示例字体2"
+          "source_file": ".\\origin-fonts\\示例字体2.ttf",
+          "fake_file": ".\\fake-fonts\\fake.ttf"
         }
       ]
     }
